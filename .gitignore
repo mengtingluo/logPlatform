@@ -1,0 +1,6 @@
+/node_modules
+.idea
+/pm2
+/public/assets
+/server
+/files
