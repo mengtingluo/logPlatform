@@ -116,14 +116,24 @@ app.use('/', (req, res, next) => {
 
 let obj = {
     heartbeat: {},
-    list: {}
-}, ifUp = {}, setTimes = {};
+    list: {},
+    sysInfo:{}
+};
 app.use(bodyParser.json());
 app.post('/pushInfo', (req, res, next)=> {
-    const name=req.body.proc[0].name;
-    obj.list[name] = req.body;
-    obj.heartbeat[name] = 1;
-    heartCheck.reset().start(name);
+    const name=req.body.proc[0].name,host=req.body.proc[0].pm2_env.HOSTNAME;
+    obj.heartbeat[host]={};
+    const heart=obj.heartbeat[host];
+    heart[name]={
+        ifUp:1,
+        host:req.body.proc[0].pm2_env.HOSTNAME,
+        name:name
+    };
+    obj.list[host]={};
+    const list=obj.list[host];
+    list[name] = req.body;
+    obj.sysInfo[host]=req.body.sysInfo;
+    heartCheck.reset().start(host,name);
     res.status(200).send('hello');
 });
 
@@ -134,34 +144,32 @@ var heartCheck = {
         clearTimeout(this.timeoutObj);
         return this;
     },
-    start: function(name){
+    start: function(host,name){
         this.timeoutObj = setTimeout(function(){
-            obj.heartbeat[name] = 0;
+            obj.heartbeat[host][name].ifUp = 0;
         //    报警
         }, this.timeout)
     }
 };
 
-app.post('/errLog', (req, res, next)=> {
-    //报警
-    console.log(req.body, req.body.error);
-    obj.errLog = req.body;
-    res.status(200).send('world');
-});
+// app.post('/errLog', (req, res, next)=> {
+//     //报警
+//     obj.errLog = req.body;
+//     res.status(200).send('world');
+// });
 app.post('/getInfo', (req, res, next)=> {
-    var os = require('os');
-    var cpus = os.cpus(),
-        totalmem = os.totalmem(),
-        freemem = os.freemem(),
-        loadavg = os.loadavg();
-    console.log(loadavg);
+    // var os = require('os');
+    // var cpus = os.cpus(),
+    //     totalmem = os.totalmem(),
+    //     freemem = os.freemem(),
+    //     loadavg = os.loadavg();
     // if(freemem<=totalmem*10%){
     //    报警
     // }
-    obj.cpus = cpus;
-    obj.totalmem = totalmem;
-    obj.freemem = freemem;
-    obj.loadavg = loadavg;
+    // obj.cpus = cpus;
+    // obj.totalmem = totalmem;
+    // obj.freemem = freemem;
+    // obj.loadavg = loadavg;
     res.status(200).json(obj);
 });
 
